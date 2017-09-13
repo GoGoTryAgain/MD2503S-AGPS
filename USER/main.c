@@ -4,10 +4,6 @@
 #include "usart.h"
 #include "includes.h"
 #include "GPS.h"
-
-
-
-
 /************************************************
  ALIENTEK 精英版STM32开发板UCOS实验 
  例4-1 UCOSIII UCOSIII移植
@@ -243,14 +239,14 @@ void CreateUserTask(void)
                  (OS_ERR 	* )&err);			
 								 
 //串口数据分配任务
-	OSTaskCreate((OS_TCB 	* )&GPSTaskTCB,		
-				 (CPU_CHAR	* )"GPS prase task", 		
-                 (OS_TASK_PTR )GPS_task, 			
+	OSTaskCreate((OS_TCB 	* )&DistributeTaskTCB,		
+				 (CPU_CHAR	* )"distriute data task", 		
+                 (OS_TASK_PTR )Distribute_task, 			
                  (void		* )0,					
-                 (OS_PRIO	  )GPS_TASK_PRIO,     	
-                 (CPU_STK   * )&GPS_TASK_STK[0],	
-                 (CPU_STK_SIZE)GPS_STK_SIZE/10,	
-                 (CPU_STK_SIZE)GPS_STK_SIZE,		
+                 (OS_PRIO	  )DISTRIBUTE_TASK_PRIO,     	
+                 (CPU_STK   * )&DISTRIBUTE_TASK_STK[0],	
+                 (CPU_STK_SIZE)DISTRIBUTE_STK_SIZE/10,	
+                 (CPU_STK_SIZE)DISTRIBUTE_STK_SIZE,		
                  (OS_MSG_QTY  )0,					
                  (OS_TICK	  )0,					
                  (void   	* )0,				
@@ -258,17 +254,11 @@ void CreateUserTask(void)
                  (OS_ERR 	* )&err);					
 }
 
-
-void TimerUart()
-{
-	
-}
-
-
 void TaskSemInit()
 {
 	OS_ERR err = OS_ERR_NONE;
-
+	//串口配置类数据ASK信号量
+	OSSemCreate(&Uart_SEM,"uart_rec_sem",0,&err);
 	//创建gps的信号量
 	OSSemCreate(&GPS_DATA_SEM,"Gps_rec_sem",1,&err);
 }
@@ -279,27 +269,9 @@ void QueueMsgInit()
 	OSQCreate((OS_Q*)&Distribute_Msg,"uart data distribute",10,&err);
 }
 
-OS_TMR Uart_timeout_TMR;
-
-void TimerInit()
-{
-	OS_ERR err = OS_ERR_NONE;
-	OSTmrCreate((OS_TMR*)(&Uart_timeout_TMR),
-							"uart time out tmr",
-							0,2000,OS_OPT_TMR_PERIODIC,
-							(OS_TMR_CALLBACK_PTR)TimerUart,
-							0,
-							&err);
-	
-	
-	
-}
-
-
 void OSResourceInit(void)
 {
 	TaskSemInit();
-	TimerInit();
 	QueueMsgInit();
 }
 
@@ -317,29 +289,37 @@ App_tag CheckDataFrom(uint8_t *data,uint32_t len)
 //根据串口数据，分发相应的数据到各个处理任务
  void Distribute_task(void *p_arg)
  {
+	 
+	 
+	 
+	 
 	 OS_MSG_SIZE size;
 	 uint8_t *MsgData ;
 	 OS_ERR err; 
 	 App_tag Tag;
-	 MsgData = OSQPend((OS_Q*)&Distribute_Msg,
-										 (OS_TICK)  0,
-										 (OS_OPT)  OS_OPT_PEND_BLOCKING,
-										 (OS_MSG_SIZE *)&size,
-										 (CPU_TS*)  0,
-										 (OS_ERR *)&err);
-	 Tag = CheckDataFrom(MsgData,size);
-	 switch(Tag)
+	 while(1)
 	 {
-		 case CONFIG_TAG:
-			 OSSemPost(&GPS_DATA_SEM,OS_OPT_POST_ALL,&err);
-			break;
-		 case SOCKET_DATA_TAG: 
-			break;
-		 case GPS_DATA_TAG:
-			 OSSemPost(&GPS_DATA_SEM,OS_OPT_POST_1,&err);
-			break;
-		 
+		 MsgData = OSQPend((OS_Q*)&Distribute_Msg,
+											 (OS_TICK)  0,
+											 (OS_OPT)  OS_OPT_PEND_BLOCKING,
+											 (OS_MSG_SIZE *)&size,
+											 (CPU_TS*)  0,
+											 (OS_ERR *)&err);
+		 Tag = CheckDataFrom(MsgData,size);
+		 switch(Tag)
+		 {
+			 case CONFIG_TAG:
+				 OSSemPost(&GPS_DATA_SEM,OS_OPT_POST_ALL,&err);
+				break;
+			 case SOCKET_DATA_TAG: 
+				break;
+			 case GPS_DATA_TAG:
+				 OSSemPost(&GPS_DATA_SEM,OS_OPT_POST_1,&err);
+				break;
+			 
+		 }
 	 }
+
 	 
 	 
  }

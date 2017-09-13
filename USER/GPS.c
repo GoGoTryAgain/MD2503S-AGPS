@@ -16,7 +16,7 @@ void GpsConfig(void)
 	/*关闭休眠*/
 	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
 	u2_printf((char*)CMD_2503S[EXIT_SLEEP]);
-	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
+	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
 
 //	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
 	if(err != OS_ERR_NONE)
@@ -88,8 +88,6 @@ void GPS_task(void *p_arg)
 	OS_ERR err = OS_ERR_NONE;
 	uint16_t i = 0;
 	uint16_t rxlen = 0;
-		//串口配置类数据ASK信号量
-	OSSemCreate(&Uart_SEM,"uart_rec_sem",0,&err);
 	GpsConfig();
 	while(1)
 	{

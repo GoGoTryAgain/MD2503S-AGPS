@@ -102,8 +102,7 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 					{
 						USART2_RX_BUF[USART2_RX_STA&0X3FFF]=Res ;
 						USART2_RX_STA++;
-						if(USART2_RX_STA>(USART3_MAX_RECV_LEN-1))
-							USART2_RX_STA=0;//接收数据错误,重新开始接收	  
+						if(USART2_RX_STA>(USART3_MAX_RECV_LEN-1))USART2_RX_STA=0;//接收数据错误,重新开始接收	  
 					}		 
 //				}
 			}   		 
