@@ -4,15 +4,8 @@
 #include "usart.h"
 #include "includes.h"
 #include "GPS.h"
-/************************************************
- ALIENTEK 精英版STM32开发板UCOS实验 
- 例4-1 UCOSIII UCOSIII移植
- 技术支持：www.openedv.com
- 淘宝店铺：http://eboard.taobao.com 
- 关注微信公众平台微信号："正点原子"，免费获取STM32资料。
- 广州市星翼电子科技有限公司  
- 作者：正点原子 @ALIENTEK
-************************************************/
+#include "Uart2.h"
+
 
 //UCOSIII中以下优先级用户程序不能使用，ALIENTEK
 //将这些优先级分配给了UCOSIII的5个系统内部任务
@@ -21,16 +14,14 @@
 //优先级2：定时任务 OS_TmrTask()
 //优先级OS_CFG_PRIO_MAX-2：统计任务 OS_StatTask()
 //优先级OS_CFG_PRIO_MAX-1：空闲任务 OS_IdleTask()
-//技术支持：www.openedv.com
-//淘宝店铺：http://eboard.taobao.com  
-//广州市星翼电子科技有限公司  
-//作者：正点原子 @ALIENTEK
+
 
 
 OS_Q Distribute_Msg; 
 
+OS_TMR Uart_timeout_TMR;
 
-
+OS_SEM SemTimerUart;  //串口中断中用于启用定时器
 
 
 void OSResourceInit(void);
@@ -80,7 +71,7 @@ __align(8) CPU_STK	FLOAT_TASK_STK[FLOAT_STK_SIZE];
 void float_task(void *p_arg);
 
 //任务优先级
-#define GPS_TASK_PRIO		5
+#define GPS_TASK_PRIO		15
 //任务堆栈大小
 #define GPS_STK_SIZE		256
 //任务控制块
@@ -92,7 +83,7 @@ __align(8) CPU_STK	GPS_TASK_STK[GPS_STK_SIZE];
 
 
 //任务优先级
-#define DISTRIBUTE_TASK_PRIO		4
+#define DISTRIBUTE_TASK_PRIO		14
 //任务堆栈大小
 #define DISTRIBUTE_STK_SIZE		128
 //任务控制块
@@ -101,6 +92,19 @@ OS_TCB	DistributeTaskTCB;
 __align(8) CPU_STK	DISTRIBUTE_TASK_STK[DISTRIBUTE_STK_SIZE];
 //任务函数
  void Distribute_task(void *p_arg);
+
+
+//任务优先级
+#define TIMER_UART_TASK_PRIO		10
+//任务堆栈大小
+#define TIMER_UART_STK_SIZE		64
+//任务控制块
+OS_TCB	Timer_Uart_TaskTCB;
+//任务堆栈
+__align(8) CPU_STK	TimerUart_TASK_STK[TIMER_UART_STK_SIZE];
+//任务函数
+ void TimerUart_task(void *p_arg);
+
 
 int main(void)
 {
@@ -205,23 +209,17 @@ void float_task(void *p_arg)
 	}
 }
 
-void CreateUserTask(void)
+//串口定时器启用任务
+ void TimerUart_task(void *p_arg)
 {
 	OS_ERR err = OS_ERR_NONE;
-		//创建LED0任务
-//	OSTaskCreate((OS_TCB 	* )&Led0TaskTCB,		
-//				 (CPU_CHAR	* )"led0 task", 		
-//                 (OS_TASK_PTR )led0_task, 			
-//                 (void		* )0,					
-//                 (OS_PRIO	  )LED0_TASK_PRIO,     
-//                 (CPU_STK   * )&LED0_TASK_STK[0],	
-//                 (CPU_STK_SIZE)LED0_STK_SIZE/10,	
-//                 (CPU_STK_SIZE)LED0_STK_SIZE,		
-//                 (OS_MSG_QTY  )0,					
-//                 (OS_TICK	  )0,					
-//                 (void   	* )0,					
-//                 (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR,
-//                 (OS_ERR 	* )&err);				
+	OSTmrStart(&Uart_timeout_TMR,&err);
+}
+
+
+void CreateUserTask(void)
+{
+	OS_ERR err = OS_ERR_NONE;	
 				 
 //GPS 解析任务
 	OSTaskCreate((OS_TCB 	* )&GPSTaskTCB,		
@@ -252,7 +250,36 @@ void CreateUserTask(void)
                  (void   	* )0,				
                  (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR, 
                  (OS_ERR 	* )&err);					
+								 
+//定时器启动任务
+	OSTaskCreate((OS_TCB 	* )&Timer_Uart_TaskTCB,		
+				 (CPU_CHAR	* )"start uart timer task", 		
+                 (OS_TASK_PTR )TimerUart_task, 			
+                 (void		* )0,					
+                 (OS_PRIO	  )TIMER_UART_TASK_PRIO,     	
+                 (CPU_STK   * )&TimerUart_TASK_STK[0],	
+                 (CPU_STK_SIZE)TIMER_UART_STK_SIZE/10,	
+                 (CPU_STK_SIZE)TIMER_UART_STK_SIZE,		
+                 (OS_MSG_QTY  )0,					
+                 (OS_TICK	  )0,					
+                 (void   	* )0,				
+                 (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR, 
+                 (OS_ERR 	* )&err);					
+								 
 }
+
+//启用分发任务
+void TimerUart()
+{
+	OS_ERR err = OS_ERR_NONE;
+	while(1)
+	{
+		OSSemPend(&SemTimerUart,0,OS_OPT_PEND_BLOCKING,0,&err);
+		OSQPost(&Distribute_Msg,(uint8_t*)USART2_RX_BUF,USART2_RX_STA,OS_OPT_POST_FIFO,&err);
+	}
+
+}
+
 
 void TaskSemInit()
 {
@@ -269,12 +296,33 @@ void QueueMsgInit()
 	OSQCreate((OS_Q*)&Distribute_Msg,"uart data distribute",10,&err);
 }
 
+
+/*串口接收空闲超时定时器*/
+void TimerInit()
+{
+	OS_ERR err = OS_ERR_NONE;
+	OSTmrCreate((OS_TMR*)(&Uart_timeout_TMR),
+							"uart time out tmr",
+							0,2000,OS_OPT_TMR_ONE_SHOT,
+							(OS_TMR_CALLBACK_PTR)TimerUart,
+							0,
+							&err);
+	
+	
+	
+}
+
+//* 信号量、消息队列，定时器初始化  //
 void OSResourceInit(void)
 {
 	TaskSemInit();
+	TimerInit();
 	QueueMsgInit();
 }
 
+
+
+//根据数据来源，启用对应的任务
 App_tag CheckDataFrom(uint8_t *data,uint32_t len)
 {
 	uint8_t *tmp = NULL;
@@ -286,13 +334,12 @@ App_tag CheckDataFrom(uint8_t *data,uint32_t len)
 	//else if()
 }
 
+
+
 //根据串口数据，分发相应的数据到各个处理任务
  void Distribute_task(void *p_arg)
  {
-	 
-	 
-	 
-	 
+	 	 
 	 OS_MSG_SIZE size;
 	 uint8_t *MsgData ;
 	 OS_ERR err; 
@@ -309,7 +356,7 @@ App_tag CheckDataFrom(uint8_t *data,uint32_t len)
 		 switch(Tag)
 		 {
 			 case CONFIG_TAG:
-				 OSSemPost(&GPS_DATA_SEM,OS_OPT_POST_ALL,&err);
+				 OSSemPost(&Uart_SEM,OS_OPT_POST_1,&err);
 				break;
 			 case SOCKET_DATA_TAG: 
 				break;

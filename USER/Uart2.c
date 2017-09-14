@@ -38,18 +38,18 @@ void Uart2_init(u32 bound)
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; //PA.2
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	//复用推挽输出
-    GPIO_Init(GPIOA, &GPIO_InitStructure); //初始化PA9
+    GPIO_Init(GPIOA, &GPIO_InitStructure); //初始化PA2
    
     //USART1_RX	  PA.03
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
-    GPIO_Init(GPIOA, &GPIO_InitStructure);  //初始化PA10
+    GPIO_Init(GPIOA, &GPIO_InitStructure);  //初始化PA3
 
    //Usart1 NVIC 配置
 
     NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=3 ;//抢占优先级3
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 4;		//子优先级4
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 5;		//子优先级4
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
 	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
   
@@ -65,8 +65,8 @@ void Uart2_init(u32 bound)
 
 	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);//开启中断
 	USART_Cmd(USART2, ENABLE);                    //使能串口 
-	USART_GetITStatus(USART2, USART_IT_RXNE);
-	ClearTmp =USART_ReceiveData(USART2);
+//	USART_GetITStatus(USART2, USART_IT_RXNE);
+//	ClearTmp =USART_ReceiveData(USART2);
 }
 
 
@@ -82,7 +82,7 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 		{
 			Res =USART_ReceiveData(USART2);//(USART2->DR);	//读取接收到的数据
-		
+		  
 //		if((USART2_RX_STA&0x8000)==0)//接收未完成
 			{
 //				if(USART2_RX_STA&0x4000)//接收到了0x0d
@@ -100,9 +100,11 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 //					if(Res==0x0d)USART2_RX_STA|=0x4000;
 //				else
 					{
+						OSSemPost(&SemTimerUart,OS_OPT_POST_1,&err);
 						USART2_RX_BUF[USART2_RX_STA&0X3FFF]=Res ;
 						USART2_RX_STA++;
-						if(USART2_RX_STA>(USART3_MAX_RECV_LEN-1))USART2_RX_STA=0;//接收数据错误,重新开始接收	  
+						if(USART2_RX_STA>(USART3_MAX_RECV_LEN-1))
+							USART2_RX_STA=0;//接收数据错误,重新开始接收	  
 					}		 
 //				}
 			}   		 

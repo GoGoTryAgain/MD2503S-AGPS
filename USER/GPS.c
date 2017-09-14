@@ -14,11 +14,8 @@ void GpsConfig(void)
 	OS_ERR err = OS_ERR_NONE;
 	uint16_t Rlen = 0;
 	/*关闭休眠*/
-	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
 	u2_printf((char*)CMD_2503S[EXIT_SLEEP]);
-	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
-
-//	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
+	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
 	if(err != OS_ERR_NONE)
 		;
 	else
@@ -54,31 +51,31 @@ void GpsConfig(void)
 	}
 	
 	//打开GPS
-	u2_printf((char*)CMD_2503S[OPEN_GPS]);
-	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
-	if(err != OS_ERR_NONE)
-		;
-	else
-	{
-		if(!CheckUart2ACK("OK",&Rlen))
-			printf("OPEN gps ok");
-	}
+//////	u2_printf((char*)CMD_2503S[OPEN_GPS]);
+//////	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
+//////	if(err != OS_ERR_NONE)
+//////		;
+//////	else
+//////	{
+//////		if(!CheckUart2ACK("OK",&Rlen))
+//////			printf("OPEN gps ok");
+//////	}
 	
 	//选择定位系统
-	u2_printf((char*)CMD_2503S[FIX_GPS_ONLY]);
-	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
-	if(err != OS_ERR_NONE)
-		;
-	else
-	{
-		if(!CheckUart2ACK("OK",&Rlen))
-		{
-			printf("OPEN gps ok");
-			GPS_Status = GPS_ON;
-			OS_TaskResume(&GPSTaskTCB,&err);//启用GPS解析任务
-		}
-			
-	}
+//////	u2_printf((char*)CMD_2503S[FIX_GPS_ONLY]);
+//////	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
+//////	if(err != OS_ERR_NONE)
+//////		;
+//////	else
+//////	{
+//////		if(!CheckUart2ACK("OK",&Rlen))
+//////		{
+//////			printf("OPEN gps ok");
+//////			GPS_Status = GPS_ON;
+//////			OS_TaskResume(&GPSTaskTCB,&err);//启用GPS解析任务
+//////		}
+//////			
+//////	}
 	
 }
 
