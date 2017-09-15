@@ -16,11 +16,6 @@
 *.gch
 *.pch
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -50,3 +45,29 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+
+
+*.bak /s
+*.ddk /s
+*.edk /s
+*.lst /s
+*.lnp /s
+*.mpf /s
+*.mpj /s
+*.obj /s
+*.omf /s
+
+*.plg /s
+*.rpt /s
+*.tmp /s
+*.__i /s
+*.crf /s
+*.o /s
+*.d /s
+*.axf /s
+*.tra /s
+*.dep /s  
+
+
