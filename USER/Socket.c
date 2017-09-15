@@ -7,7 +7,7 @@ uint8_t SocketStatus = 0;
 
 
 
-void SocketConfig()
+void SocketConfig(void)
 {
 	OS_ERR err = OS_ERR_NONE;
 	uint16_t Rlen = 0;

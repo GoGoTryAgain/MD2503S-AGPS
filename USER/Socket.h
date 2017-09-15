@@ -9,6 +9,6 @@
 
 
 
-
+void SocketConfig(void);
 
 #endif

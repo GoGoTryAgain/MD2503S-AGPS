@@ -19,7 +19,7 @@ extern uint8_t  USART2_RX_BUF[USART3_MAX_RECV_LEN]; 		//接收缓冲,最大USART3_MAX_
 extern uint8_t  USART2_TX_BUF[USART3_MAX_SEND_LEN]; 		//发送缓冲,最大USART3_MAX_SEND_LEN字节
 extern uint16_t USART2_RX_STA;   						//接收数据状态
 extern OS_TMR Uart_timeout_TMR;
-extern OS_SEM SemTimerUart;  //串口中断中用于启用定时器
+extern OS_SEM UART_Timer_START_SEM;  //串口中断中用于启用定时器
 
 
 

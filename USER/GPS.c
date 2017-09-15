@@ -4,6 +4,8 @@
 #include "Uart2.h"
 #include "os.h"
 #include "string.h"	
+#include "Socket.h"
+
 
 uint8_t GPS_Status = GPS_OFF;
 
@@ -15,7 +17,7 @@ void GpsConfig(void)
 	uint16_t Rlen = 0;
 	/*¹Ø±ÕÐÝÃß*/
 	u2_printf((char*)CMD_2503S[EXIT_SLEEP]);
-	OSSemPend(&Uart_SEM,CMD_ACK_TIMEOUT,OS_OPT_PEND_BLOCKING,0,&err);
+	OSSemPend(&Uart_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
 	if(err != OS_ERR_NONE)
 		;
 	else
@@ -86,6 +88,7 @@ void GPS_task(void *p_arg)
 	uint16_t i = 0;
 	uint16_t rxlen = 0;
 	GpsConfig();
+	SocketConfig();
 	while(1)
 	{
 		i = 0;

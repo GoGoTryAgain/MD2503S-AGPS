@@ -21,7 +21,7 @@ OS_Q Distribute_Msg;
 
 OS_TMR Uart_timeout_TMR;
 
-OS_SEM SemTimerUart;  //串口中断中用于启用定时器
+OS_SEM UART_Timer_START_SEM;  //串口中断中用于启用定时器
 
 
 void OSResourceInit(void);
@@ -213,7 +213,13 @@ void float_task(void *p_arg)
  void TimerUart_task(void *p_arg)
 {
 	OS_ERR err = OS_ERR_NONE;
-	OSTmrStart(&Uart_timeout_TMR,&err);
+	while(1)
+	{
+		OSSemPend(&UART_Timer_START_SEM,0,OS_OPT_PEND_BLOCKING,0,&err);
+		OSTmrStart(&Uart_timeout_TMR,&err);
+	}
+
+
 }
 
 
@@ -269,14 +275,10 @@ void CreateUserTask(void)
 }
 
 //启用分发任务
-void TimerUart()
+void TimerUartCallBack()
 {
 	OS_ERR err = OS_ERR_NONE;
-	while(1)
-	{
-		OSSemPend(&SemTimerUart,0,OS_OPT_PEND_BLOCKING,0,&err);
-		OSQPost(&Distribute_Msg,(uint8_t*)USART2_RX_BUF,USART2_RX_STA,OS_OPT_POST_FIFO,&err);
-	}
+	OSQPost(&Distribute_Msg,(uint8_t*)USART2_RX_BUF,USART2_RX_STA,OS_OPT_POST_FIFO,&err);
 
 }
 
@@ -287,7 +289,10 @@ void TaskSemInit()
 	//串口配置类数据ASK信号量
 	OSSemCreate(&Uart_SEM,"uart_rec_sem",0,&err);
 	//创建gps的信号量
-	OSSemCreate(&GPS_DATA_SEM,"Gps_rec_sem",1,&err);
+	OSSemCreate(&GPS_DATA_SEM,"Gps_rec_sem",0,&err);
+	
+	//创建定时器启动控制信号量
+	OSSemCreate(&UART_Timer_START_SEM,"timer_start_sem",0,&err);
 }
 
 void QueueMsgInit()
@@ -304,7 +309,7 @@ void TimerInit()
 	OSTmrCreate((OS_TMR*)(&Uart_timeout_TMR),
 							"uart time out tmr",
 							0,2000,OS_OPT_TMR_ONE_SHOT,
-							(OS_TMR_CALLBACK_PTR)TimerUart,
+							(OS_TMR_CALLBACK_PTR)TimerUartCallBack,
 							0,
 							&err);
 	

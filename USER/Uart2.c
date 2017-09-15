@@ -25,7 +25,7 @@ u16 USART2_RX_STA=0;       //接收状态标记
 
 void Uart2_init(u32 bound)
 {
-	uint8_t ClearTmp = 0;
+//	uint8_t ClearTmp = 0;
     //GPIO端口设置
   GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
@@ -34,7 +34,7 @@ void Uart2_init(u32 bound)
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);	//使能USART2，GPIOA时钟
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
  	USART_DeInit(USART2);  //复位串口1
-	 //USART1_TX   PA.9
+	 //USART1_TX   PA.2
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; //PA.2
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	//复用推挽输出
@@ -81,8 +81,9 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 #endif
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 		{
+			
+			USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 			Res =USART_ReceiveData(USART2);//(USART2->DR);	//读取接收到的数据
-		  
 //		if((USART2_RX_STA&0x8000)==0)//接收未完成
 			{
 //				if(USART2_RX_STA&0x4000)//接收到了0x0d
@@ -100,7 +101,7 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 //					if(Res==0x0d)USART2_RX_STA|=0x4000;
 //				else
 					{
-						OSSemPost(&SemTimerUart,OS_OPT_POST_1,&err);
+						OSSemPost(&UART_Timer_START_SEM,OS_OPT_POST_1,&err);
 						USART2_RX_BUF[USART2_RX_STA&0X3FFF]=Res ;
 						USART2_RX_STA++;
 						if(USART2_RX_STA>(USART3_MAX_RECV_LEN-1))
